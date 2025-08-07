@@ -1,4 +1,4 @@
-"codSituacaoCDA","nomSituacaoCDA","codSituacaoFiscal","codFaseCobranca","codExigibilidade","tipoSituacao"
+"codSituacaoCDA","nomeSituacaoCDA","codSituacaoFiscal","codFaseCobranca","codExigibilidade","tipoSituacao"
 1,Inscrita,1,1,1,A
 2,Cancelada,1,1,3,A
 3,Cobrança,1,1,1,A
