@@ -1,4 +1,10 @@
-.venv
+# Todos os arquivos que serão ocultados no repositório
+
+.venv/
 .ipynb_checkpoints
 senha.py
-__pycache__
+config.py
+config_dw.py
+__pycache__/
+*.csv
+teste.sql

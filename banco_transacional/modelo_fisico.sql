@@ -1,3 +1,5 @@
+-- Criação do Banco Transacional
+
 CREATE TABLE NaturezaDivida (
     idNaturezaDivida INT PRIMARY KEY,
     nomeNaturezaDivida VARCHAR(100),
@@ -32,6 +34,7 @@ CREATE TABLE Recuperacao (
     CONSTRAINT fk_recuperacao_cda FOREIGN KEY (numCDA) REFERENCES CDA(numCDA)
 );
 
+-- Essa tabela foi renomeada para CDA_Pessoa mais tarde
 CREATE TABLE Pessoa (
     idPessoa VARCHAR(20) PRIMARY KEY,
     numCDA VARCHAR(30) UNIQUE,
