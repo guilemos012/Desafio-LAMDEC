@@ -45,6 +45,7 @@ CREATE TABLE FatoCDA (
     skTempoCadastramento INT NOT NULL REFERENCES DimTempo(skTempo),
     skTempoSituacao INT NOT NULL REFERENCES DimTempo(skTempo),
 
+    anoCadastramento INT,
     idadeCDA INT,
     valSaldo NUMERIC(15,2),
     probRecuperacao FLOAT,

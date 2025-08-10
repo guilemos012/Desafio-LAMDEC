@@ -1,10 +1,7 @@
 # Todos os arquivos que serão ocultados no repositório
 
+.env
 .venv/
 .ipynb_checkpoints
-senha.py
-config.py
-config_dw.py
 __pycache__/
 *.csv
-teste.sql

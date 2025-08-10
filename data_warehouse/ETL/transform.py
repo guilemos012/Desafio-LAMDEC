@@ -21,6 +21,8 @@ def transform(df_cda, df_situacao, df_natureza, df_recuperacao, df_pessoa, df_pf
             "NÃO INFORMADO"
         )
     )
+    df_pessoas_merge['numDocumento'] = df_pessoas_merge['numDocumento'].astype(str).str.replace('.0', '', regex=False)
+    df_pessoas_merge.loc[df_pessoas_merge['numDocumento'] == "NÃO INFORMADO", 'tipoPessoa'] = 'G'
 
     dim_pessoa = df_pessoas_merge[['idPessoa', 'tipoPessoa', 'descNome', 'numDocumento']
                                   ].drop_duplicates()
@@ -33,11 +35,11 @@ def transform(df_cda, df_situacao, df_natureza, df_recuperacao, df_pessoa, df_pf
     def agrupar_situacao(nome):
         nome = nome.lower()
         if 'cancela' in nome:
-            return 1 # Cancelada
+            return 'Cancelada'
         elif 'pag' in nome:
-            return 2 # Paga
+            return 'Paga'
         else:
-            return 3 # Em Cobrança
+            return 'Em Cobrança'
         
     df_situacao['agrupamentoSituacao'] = df_situacao['nomeSituacaoCDA'].apply(agrupar_situacao)
 
@@ -65,8 +67,11 @@ def transform(df_cda, df_situacao, df_natureza, df_recuperacao, df_pessoa, df_pf
     # Cálculo da idade 
     fato['datCadastramento'] = pd.to_datetime(fato['datCadastramento'], errors='coerce')
     fato['datSituacao'] = fato['datSituacao'].fillna(pd.Timestamp(date(1900, 1, 1)))
+    fato['datCadastramento'] = fato['datCadastramento'].fillna(pd.Timestamp(date(1900, 1, 1)))
     ano_atual = date.today().year
-    fato['idadeCDA'] = ano_atual - fato['datSituacao'].dt.year
+    fato['idadeCDA'] = ano_atual - fato['datCadastramento'].dt.year
+
+    fato['anoCadastramento'] = fato['datCadastramento'].dt.year
 
     # Tempo Situação e Tempo Cadastramento (em anos)
     fato['tempoSituacao'] = ano_atual - fato['datSituacao'].dt.year
@@ -75,6 +80,6 @@ def transform(df_cda, df_situacao, df_natureza, df_recuperacao, df_pessoa, df_pf
     fato_cda = fato[['numCDA', 'idNaturezaDivida', 'codSituacaoCDA', 'idPessoa',
                      'tempoCadastramento', 'tempoSituacao',
                      'valSaldo', 'agrupamentoSituacao', 
-                     'probRecuperacao', 'stsRecuperacao', 'idadeCDA']]
+                     'probRecuperacao', 'stsRecuperacao', 'idadeCDA', 'anoCadastramento']]
     
     return dim_pessoa, dim_natureza, dim_situacao, dim_tempo, fato_cda
