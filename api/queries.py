@@ -5,47 +5,49 @@ def search_cda(db, numCDA=None, minSaldo=None, maxSaldo=None, minAno=None, maxAn
                natureza=None, agrupamentoSituacao=None, sort_by="ano", sort_order="desc"):
     query = """
     SELECT 
-        f."numCDA",
-        f."valSaldo",
-        f."idadeCDA",
-        f."agrupamentoSituacao",
-        n."nomeNaturezaDivida" AS natureza,
-        f."probRecuperacao" AS score
-    FROM "FatoCDA" f
-    JOIN "DimNaturezaDivida" n 
-        ON f."idNaturezaDivida" = n."idNaturezaDivida"
+        f.numcda,
+        f.valsaldo,
+        f.idadecda,
+        s.agrupamentosituacao,
+        n.nomenaturezadivida AS natureza,
+        f.probrecuperacao AS score
+    FROM fatocda f
+    JOIN dimnaturezadivida n 
+        ON f.sknaturezadivida = n.idnaturezadivida
+    JOIN dimsituacaocda s
+        ON f.sksituacaocda = s.codsituacaocda
     WHERE 1=1
     """
     params = {}
 
     if numCDA:
-        query += ' AND f."numCDA" = :numCDA'
-        params["numCDA"] = numCDA
+        query += ' AND f.numcda = :numcda'
+        params["numcda"] = numCDA
     if minSaldo is not None:
-        query += ' AND f."valSaldo" >= :minSaldo'
-        params["minSaldo"] = minSaldo
+        query += ' AND f.valsaldo >= :minsaldo'
+        params["minsaldo"] = minSaldo
     if maxSaldo is not None:
-        query += ' AND f."valSaldo" <= :maxSaldo'
-        params["maxSaldo"] = maxSaldo
+        query += ' AND f.valsaldo <= :maxsaldo'
+        params["maxsaldo"] = maxSaldo
     if minAno is not None:
-        query += ' AND f."anoCadastramento" >= :minAno'
-        params["minAno"] = minAno
+        query += ' AND f.anoinscricao >= :minano'
+        params["minano"] = minAno
     if maxAno is not None:
-        query += ' AND f."anoCadastramento" <= :maxAno'
-        params["maxAno"] = maxAno
+        query += ' AND f.anoinscricao <= :maxano'
+        params["maxano"] = maxAno
     if natureza:
-        query += ' AND n."nomeNaturezaDivida" ILIKE :natureza'
+        query += ' AND n.nomenaturezadivida ILIKE :natureza'
         params["natureza"] = f"%{natureza}%"
     if agrupamentoSituacao:
-        query += ' AND f."agrupamentoSituacao" = :agrupamentoSituacao'
-        params["agrupamentoSituacao"] = agrupamentoSituacao
+        query += ' AND s.agrupamentosituacao = :agrupamentosituacao'
+        params["agrupamentosituacao"] = agrupamentoSituacao
 
     # Validação do sort_by
     sort_by_map = {
-        "ano": 'f."idadeCDA"',
-        "valor": 'f."valSaldo"'
+        "ano": "f.anoinscricao",
+        "valor": "f.valsaldo"
     }
-    sort_column = sort_by_map.get(sort_by, 'f."idadeCDA"')
+    sort_column = sort_by_map.get(sort_by, "f.anoinscricao")
 
     # Validação do sort_order
     sort_order = sort_order.lower()
@@ -56,33 +58,34 @@ def search_cda(db, numCDA=None, minSaldo=None, maxSaldo=None, minAno=None, maxAn
 
     return db.execute(text(query), params).fetchall()
 
-
 # /cda/detalhes_devedor
 def get_detalhes_devedor(db, numCDA):
     query = """
     SELECT 
-        p."descNome" AS name,
-        p."tipoPessoa" AS tipo_pessoa,
-        p."numDocumento" AS documento
-    FROM "DimPessoa" p
-    JOIN "FatoCDA" f 
-        ON f."idPessoa" = p."idPessoa"
-    WHERE f."numCDA" = :numCDA
+        p.nomepessoa AS name,
+        p.tipopessoa AS tipo_pessoa,
+        p.numdocumento AS documento
+    FROM dimpessoa p
+    JOIN fatocda f 
+        ON f.skpessoa = p.idpessoa
+    WHERE f.numcda = :numcda
     """
-    return db.execute(text(query), {"numCDA": numCDA}).fetchall()
+    return db.execute(text(query), {"numcda": numCDA}).fetchall()
 
 # /resumo/distribuicao_cdas
 def get_distribuicao_cdas(db):
     query = """
     SELECT
-        n."nomeNaturezaDivida" AS name,
-        ROUND(100.0 * SUM(CASE WHEN f."agrupamentoSituacao" = 'Em Cobrança' THEN 1 ELSE 0 END) / COUNT(*), 2) AS Em_cobranca,
-        ROUND(100.0 * SUM(CASE WHEN f."agrupamentoSituacao" = 'Cancelada' THEN 1 ELSE 0 END) / COUNT(*), 2) AS Cancelada,
-        ROUND(100.0 * SUM(CASE WHEN f."agrupamentoSituacao" = 'Paga' THEN 1 ELSE 0 END) / COUNT(*), 2) AS Paga
-    FROM "FatoCDA" f
-    JOIN "DimNaturezaDivida" n 
-        ON f."idNaturezaDivida" = n."idNaturezaDivida"
-    GROUP BY n."nomeNaturezaDivida"
+        n.nomenaturezadivida AS name,
+        ROUND(100.0 * SUM(CASE WHEN s.agrupamentosituacao = 1 THEN 1 ELSE 0 END) / COUNT(*), 2) AS Em_cobranca,
+        ROUND(100.0 * SUM(CASE WHEN s.agrupamentosituacao = 2 THEN 1 ELSE 0 END) / COUNT(*), 2) AS Cancelada,
+        ROUND(100.0 * SUM(CASE WHEN s.agrupamentosituacao = 3 THEN 1 ELSE 0 END) / COUNT(*), 2) AS Paga
+    FROM fatocda f
+    JOIN dimnaturezadivida n 
+        ON f.sknaturezadivida = n.idnaturezadivida
+    JOIN dimsituacaocda s
+        ON f.sksituacaocda = s.codsituacaocda
+    GROUP BY n.nomenaturezadivida
     """
     return db.execute(text(query)).fetchall()
 
@@ -90,17 +93,17 @@ def get_distribuicao_cdas(db):
 def get_resumo_inscricoes(db, ano=None):
     query = """
     SELECT 
-        f."anoCadastramento"::int AS ano,
+        f.anoinscricao::int AS ano,
         COUNT(*) AS quantidade
-    FROM "FatoCDA" f
+    FROM fatocda f
     {where_clause}
-    GROUP BY f."anoCadastramento"
+    GROUP BY f.anoinscricao
     ORDER BY ano
     """
     where_clause = ""
     params = {}
     if ano is not None:
-        where_clause = 'WHERE f."anoCadastramento"::int = :ano'
+        where_clause = 'WHERE f.anoinscricao::int = :ano'
         params["ano"] = ano
     query = query.format(where_clause=where_clause)
     return db.execute(text(query), params).fetchall()
@@ -109,12 +112,12 @@ def get_resumo_inscricoes(db, ano=None):
 def get_quantidade_cdas(db):
     query = """
     SELECT 
-        n."nomeNaturezaDivida" AS name,
+        n.nomenaturezadivida AS name,
         COUNT(*) AS quantidade
-    FROM "FatoCDA" f
-    JOIN "DimNaturezaDivida" n 
-        ON f."idNaturezaDivida" = n."idNaturezaDivida"
-    GROUP BY n."nomeNaturezaDivida"
+    FROM fatocda f
+    JOIN dimnaturezadivida n 
+        ON f.sknaturezadivida = n.idnaturezadivida
+    GROUP BY n.nomenaturezadivida
     """
     return db.execute(text(query)).fetchall()
 
@@ -122,11 +125,11 @@ def get_quantidade_cdas(db):
 def get_saldo_cdas(db):
     query = """
     SELECT 
-        n."nomeNaturezaDivida" AS name,
-        SUM(f."valSaldo") AS saldo
-    FROM "FatoCDA" f
-    JOIN "DimNaturezaDivida" n 
-        ON f."idNaturezaDivida" = n."idNaturezaDivida"
-    GROUP BY n."nomeNaturezaDivida"
+        n.nomenaturezadivida AS name,
+        SUM(f.valsaldo) AS saldo
+    FROM fatocda f
+    JOIN dimnaturezadivida n 
+        ON f.sknaturezadivida = n.idnaturezadivida
+    GROUP BY n.nomenaturezadivida
     """
     return db.execute(text(query)).fetchall()

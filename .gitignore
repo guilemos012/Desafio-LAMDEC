@@ -5,3 +5,9 @@
 .ipynb_checkpoints
 __pycache__/
 *.csv
+teste.py
+povoar.py
+
+docker-compose.yml
+docker
+Dockerfile

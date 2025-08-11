@@ -50,10 +50,10 @@ def search_cda(
         
         return [
             CDAResponse.from_data(
-                str(r._mapping['numCDA']),
-                r._mapping['valSaldo'],
-                r._mapping['idadeCDA'],
-                r._mapping['agrupamentoSituacao'],
+                str(r._mapping['numcda']),    
+                r._mapping['valsaldo'],           
+                r._mapping['idadecda'],           
+                r._mapping['agrupamentosituacao'],
                 r._mapping['natureza'],
                 r._mapping['score']
             )
@@ -121,10 +121,7 @@ def distribuicao_cdas(db=Depends(get_db)):
 
 # /resumo/inscricoes
 @app.get("/resumo/inscricoes", response_model=List[Inscricao])
-def resumo_inscricoes(ano: int, db=Depends(get_db)):
-    if ano == 1900:
-        raise HTTPException(status_code=400, detail="Não há informação") # Ano padrão pra preencher data nula
-    
+def resumo_inscricoes(ano: int, db=Depends(get_db)):    
     try:
         rows = queries.get_resumo_inscricoes(db, ano)
 

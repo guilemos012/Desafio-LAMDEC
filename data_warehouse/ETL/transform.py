@@ -3,83 +3,92 @@ import numpy as np
 from datetime import date
 
 def transform(df_cda, df_situacao, df_natureza, df_recuperacao, df_pessoa, df_pf, df_pj):
-
     # Dimensão Pessoa
-    df_pf['tipoPessoa'] = 'F'
-    df_pj['tipoPessoa'] = 'J'
+    df_pf['tipopessoa'] = 'F'
+    df_pj['tipopessoa'] = 'J'
 
-    df_pessoas_merge = pd.merge(df_pessoa, pd.concat([df_pf, df_pj], ignore_index=True),
-                                on='idPessoa', how='left')
+    # Preparar dados de PF e PJ para merge
+    df_pf_clean = df_pf[['idpessoa', 'descnome', 'numcpf', 'tipopessoa']].copy()
+    df_pj_clean = df_pj[['idpessoa', 'descnome', 'numcnpj', 'tipopessoa']].copy()
     
-    # Tratamento de nulos e tipo 'G'
-    df_pessoas_merge['numDocumento'] = np.where(
-        df_pessoas_merge['tipoPessoa'] == 'F',
-        df_pessoas_merge['numCPF'].fillna("NÃO INFORMADO"),
-        np.where(
-            df_pessoas_merge['tipoPessoa'] == 'J',
-            df_pessoas_merge['numCNPJ'].fillna("NÃO INFORMADO"),
-            "NÃO INFORMADO"
-        )
+    # Padronizar nomes das colunas para o merge
+    df_pf_clean = df_pf_clean.rename(columns={'descnome': 'nomepessoa', 'numcpf': 'numdocumento'})
+    df_pj_clean = df_pj_clean.rename(columns={'descnome': 'nomepessoa', 'numcnpj': 'numdocumento'})
+    
+    # Combinar PF e PJ
+    df_pessoas_dados = pd.concat([df_pf_clean, df_pj_clean], ignore_index=True)
+    
+    # Merge com a tabela pessoa (cda_pessoa)
+    df_pessoas_merge = pd.merge(
+        df_pessoa,
+        df_pessoas_dados,
+        on='idpessoa',
+        how='left'
     )
-    df_pessoas_merge['numDocumento'] = df_pessoas_merge['numDocumento'].astype(str).str.replace('.0', '', regex=False)
-    df_pessoas_merge.loc[df_pessoas_merge['numDocumento'] == "NÃO INFORMADO", 'tipoPessoa'] = 'G'
 
-    dim_pessoa = df_pessoas_merge[['idPessoa', 'tipoPessoa', 'descNome', 'numDocumento']
-                                  ].drop_duplicates()
+    # Tratar casos onde não há dados de PF/PJ
+    df_pessoas_merge['tipopessoa'] = df_pessoas_merge['tipopessoa'].fillna('G')  # Geral
+    df_pessoas_merge['nomepessoa'] = df_pessoas_merge['nomepessoa'].fillna('Nome não informado')
+    df_pessoas_merge['numdocumento'] = df_pessoas_merge['numdocumento'].fillna('NÃO INFORMADO')
+    
+    # Limpar dados do documento
+    df_pessoas_merge['numdocumento'] = df_pessoas_merge['numdocumento'].astype(str).str.replace('.0', '', regex=False)
 
-    # Dimensão Natureza (não há nulos)
-    dim_natureza = df_natureza[['idNaturezaDivida', 'nomeNaturezaDivida', 'descNaturezaDivida']
-                               ].drop_duplicates()
+    dim_pessoa = df_pessoas_merge[['idpessoa', 'tipopessoa', 'nomepessoa', 'numdocumento']].drop_duplicates()
+    
+    # Dimensão Natureza
+    dim_natureza = df_natureza[['idnaturezadivida', 'nomenaturezadivida', 'descnaturezadivida']].drop_duplicates()
 
-    # Dimensão Situação (não há nulos)
+    # Dimensão Situação - FIX: usar códigos numéricos em vez de texto
     def agrupar_situacao(nome):
         nome = nome.lower()
         if 'cancela' in nome:
-            return 'Cancelada'
+            return 2  # Cancelada
         elif 'pag' in nome:
-            return 'Paga'
+            return 3  # Paga
         else:
-            return 'Em Cobrança'
-        
-    df_situacao['agrupamentoSituacao'] = df_situacao['nomeSituacaoCDA'].apply(agrupar_situacao)
+            return 1  # Em Cobrança
+    
+    df_situacao['agrupamentosituacao'] = df_situacao['nomesituacaocda'].apply(agrupar_situacao)
 
-    dim_situacao = df_situacao[['codSituacaoCDA', 'nomeSituacaoCDA', 'codSituacaoFiscal',
-                                'codFaseCobranca', 'codExigibilidade', 'tipoSituacao',
-                                'agrupamentoSituacao']].drop_duplicates()
+    dim_situacao = df_situacao[['codsituacaocda', 'nomesituacaocda', 'codsituacaofiscal',
+                                'codfasecobranca', 'codexigibilidade', 'tiposituacao',
+                                'agrupamentosituacao']].drop_duplicates()
 
-    # Dimensão Tempo (havia apenas valores nulos em datCadastramento, mas usarei apenas datSituacao na análise)
-    df_cda['datSituacao'] = pd.to_datetime(df_cda['datSituacao'], errors='coerce')
+    # Dimensão Tempo
+    df_cda['datsituacao'] = pd.to_datetime(df_cda['datsituacao'], errors='coerce')
 
-    dim_tempo = pd.DataFrame(df_cda['datSituacao'].dropna().unique(), columns=['dataCompleta'])
-    dim_tempo['dia'] = dim_tempo['dataCompleta'].dt.day
-    dim_tempo['mes'] = dim_tempo['dataCompleta'].dt.month
-    dim_tempo['ano'] = dim_tempo['dataCompleta'].dt.year
-    dim_tempo['trimestre'] = dim_tempo['dataCompleta'].dt.quarter
+    dim_tempo = pd.DataFrame(df_cda['datsituacao'].dropna().unique(), columns=['datacompleta'])
+    dim_tempo['dia'] = dim_tempo['datacompleta'].dt.day
+    dim_tempo['mes'] = dim_tempo['datacompleta'].dt.month
+    dim_tempo['ano'] = dim_tempo['datacompleta'].dt.year
+    dim_tempo['trimestre'] = dim_tempo['datacompleta'].dt.quarter
 
     # Fato CDA
     fato = (df_cda
-            .merge(df_recuperacao, on='numCDA', how='left')
-            .merge(df_natureza, on='idNaturezaDivida', how='left')
-            .merge(df_situacao, on='codSituacaoCDA', how='left')
-            .merge(df_pessoa, on='numCDA', how='left')
+            .merge(df_recuperacao, on='numcda', how='left')
+            .merge(df_natureza, on='idnaturezadivida', how='left')
+            .merge(df_situacao, on='codsituacaocda', how='left')
+            .merge(df_pessoa, on='numcda', how='left')
            )
-    
-    # Cálculo da idade 
-    fato['datCadastramento'] = pd.to_datetime(fato['datCadastramento'], errors='coerce')
-    fato['datSituacao'] = fato['datSituacao'].fillna(pd.Timestamp(date(1900, 1, 1)))
-    fato['datCadastramento'] = fato['datCadastramento'].fillna(pd.Timestamp(date(1900, 1, 1)))
+
+    fato['datcadastramento'] = pd.to_datetime(fato['datcadastramento'], errors='coerce')
+    fato['datsituacao'] = fato['datsituacao'].fillna(pd.Timestamp(date(1900, 1, 1)))
+    fato['datcadastramento'] = fato['datcadastramento'].fillna(pd.Timestamp(date(1900, 1, 1)))
+
     ano_atual = date.today().year
-    fato['idadeCDA'] = ano_atual - fato['datCadastramento'].dt.year
+    fato['idadecda'] = ano_atual - fato['datcadastramento'].dt.year
+    fato['anocadastramento'] = fato['datcadastramento'].dt.year
+    fato['temposituacao'] = ano_atual - fato['datsituacao'].dt.year
+    fato['tempocadastramento'] = ano_atual - fato['datcadastramento'].dt.year
 
-    fato['anoCadastramento'] = fato['datCadastramento'].dt.year
+    fato_cda = fato[['numcda', 'anoinscricao', 'anocadastramento', 'idadecda', 
+                     'valsaldo', 'probrecuperacao', 'stsrecuperacao']].copy()
 
-    # Tempo Situação e Tempo Cadastramento (em anos)
-    fato['tempoSituacao'] = ano_atual - fato['datSituacao'].dt.year
-    fato['tempoCadastramento'] = ano_atual - fato['datCadastramento'].dt.year
+    fato_cda['sknaturezadivida'] = 1
+    fato_cda['sksituacaocda'] = 1    
+    fato_cda['skpessoa'] = 1       
+    fato_cda['sktempocadastramento'] = 1
+    fato_cda['sktemposituacao'] = 1
 
-    fato_cda = fato[['numCDA', 'idNaturezaDivida', 'codSituacaoCDA', 'idPessoa',
-                     'tempoCadastramento', 'tempoSituacao',
-                     'valSaldo', 'agrupamentoSituacao', 
-                     'probRecuperacao', 'stsRecuperacao', 'idadeCDA', 'anoCadastramento']]
-    
     return dim_pessoa, dim_natureza, dim_situacao, dim_tempo, fato_cda

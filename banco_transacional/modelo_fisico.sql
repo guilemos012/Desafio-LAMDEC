@@ -1,21 +1,22 @@
 -- Criação do Banco Transacional
+-- No mesmo diretório existe um arquivo ocultado pra povoar o banco de dados
 
-CREATE TABLE NaturezaDivida (
+CREATE TABLE naturezadivida (
     idNaturezaDivida INT PRIMARY KEY,
     nomeNaturezaDivida VARCHAR(100),
     descNaturezaDivida VARCHAR(100)
 );
 
-CREATE TABLE SituacaoCDA (
+CREATE TABLE situacaocda (
     codSituacaoCDA INT PRIMARY KEY,
-    nomeSituacaoCDA VARCHAR(20),
+    nomeSituacaoCDA VARCHAR(100),
     codSituacaoFiscal INT,
     codFaseCobranca INT,
     codExigibilidade INT,
     tipoSituacao VARCHAR(1)
 );
 
-CREATE TABLE CDA (
+CREATE TABLE cda (
     numCDA VARCHAR(30) PRIMARY KEY,
     idNaturezaDivida INT,
     codSituacaoCDA INT,
@@ -23,36 +24,36 @@ CREATE TABLE CDA (
     datCadastramento DATE,
     codFaseCobranca INT,
     valSaldo FLOAT,
-    CONSTRAINT fk_cda_natureza FOREIGN KEY (idNaturezaDivida) REFERENCES NaturezaDivida(idNaturezaDivida),
-    CONSTRAINT fk_cda_situacao FOREIGN KEY (codSituacaoCDA) REFERENCES SituacaoCDA(codSituacaoCDA)
+    anoInscricao INT,
+    CONSTRAINT fk_cda_natureza FOREIGN KEY (idNaturezaDivida) REFERENCES naturezadivida(idNaturezaDivida),
+    CONSTRAINT fk_cda_situacao FOREIGN KEY (codSituacaoCDA) REFERENCES situacaocda(codSituacaoCDA)
 );
 
-CREATE TABLE Recuperacao (
+CREATE TABLE recuperacao (
     numCDA VARCHAR(30) PRIMARY KEY,
     probRecuperacao FLOAT,
     stsRecuperacao INT,
-    CONSTRAINT fk_recuperacao_cda FOREIGN KEY (numCDA) REFERENCES CDA(numCDA)
+    CONSTRAINT fk_recuperacao_cda FOREIGN KEY (numCDA) REFERENCES cda(numCDA)
 );
 
--- Essa tabela foi renomeada para CDA_Pessoa mais tarde
-CREATE TABLE Pessoa (
+CREATE TABLE cda_pessoa (
     idPessoa VARCHAR(20) PRIMARY KEY,
     numCDA VARCHAR(30) UNIQUE,
     descSituacaoDevedor INT,
     tipo VARCHAR(1),
-    CONSTRAINT fk_pessoa_cda FOREIGN KEY (numCDA) REFERENCES CDA(numCDA)
+    CONSTRAINT fk_pessoa_cda FOREIGN KEY (numCDA) REFERENCES cda(numCDA)
 );
 
-CREATE TABLE PessoaFisica (
+CREATE TABLE pessoafisica (
     idPessoa VARCHAR(20) PRIMARY KEY,
     descNome VARCHAR(50),
-    numCPF VARCHAR(11) UNIQUE,
-    CONSTRAINT fk_pf_pessoa FOREIGN KEY (idPessoa) REFERENCES Pessoa(idPessoa)
+    numCPF VARCHAR(13) UNIQUE,
+    CONSTRAINT fk_pf_pessoa FOREIGN KEY (idPessoa) REFERENCES cda_pessoa(idPessoa)
 );
 
-CREATE TABLE PessoaJuridica (
+CREATE TABLE pessoajuridica (
     idPessoa VARCHAR(20) PRIMARY KEY,
     descNome VARCHAR(50),
-    numCNPJ VARCHAR(14) UNIQUE,
-    CONSTRAINT fk_pj_pessoa FOREIGN KEY (idPessoa) REFERENCES Pessoa(idPessoa)
+    numCNPJ VARCHAR(16) UNIQUE,
+    CONSTRAINT fk_pj_pessoa FOREIGN KEY (idPessoa) REFERENCES cda_pessoa(idPessoa)
 );

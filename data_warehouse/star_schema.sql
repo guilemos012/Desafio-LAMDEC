@@ -1,53 +1,60 @@
 -- Criação do Banco de Dados do DW
+DROP TABLE IF EXISTS fatocda;
+DROP TABLE IF EXISTS dimpessoa;
+DROP TABLE IF EXISTS dimsituacaocda;
+DROP TABLE IF EXISTS dimnaturezadivida;
+DROP TABLE IF EXISTS dimtempo;
 
-CREATE TABLE DimTempo (
-    skTempo SERIAL PRIMARY KEY,
-    dataCompleta DATE NOT NULL,
+
+CREATE TABLE dimtempo (
+    sktempo SERIAL PRIMARY KEY,
+    datacompleta DATE NOT NULL,
     dia INT NOT NULL,
     mes INT NOT NULL,
     ano INT NOT NULL,
     trimestre INT NOT NULL
 );
 
-CREATE TABLE DimNaturezaDivida (
-    skNaturezaDivida SERIAL PRIMARY KEY,
-    idNaturezaDivida INT NOT NULL,
-    nomeNaturezaDivida VARCHAR(100),
-    descNaturezaDivida VARCHAR(100)
+CREATE TABLE dimnaturezadivida (
+    sknaturezadivida SERIAL PRIMARY KEY,
+    idnaturezadivida INT NOT NULL,
+    nomenaturezadivida VARCHAR(100),
+    descnaturezadivida VARCHAR(100)
 );
 
-CREATE TABLE DimSituacaoCDA (
-    skSituacaoCDA SERIAL PRIMARY KEY,
-    codSituacaoCDA INT NOT NULL,
-    nomeSituacaoCDA VARCHAR(20),
-    codSituacaoFiscal INT,
-    codFaseCobranca INT,
-    codExigibilidade INT,
-    tipoSituacao VARCHAR(1),
-    agrupamentoSituacao INT
+CREATE TABLE dimsituacaocda (
+    sksituacaocda SERIAL PRIMARY KEY,
+    codsituacaocda INT NOT NULL,
+    nomesituacaocda VARCHAR(100),
+    codsituacaofiscal INT,
+    codfasecobranca INT,
+    codexigibilidade INT,
+    tiposituacao VARCHAR(1),
+    agrupamentosituacao INT
 );
 
-CREATE TABLE DimPessoa (
-    skPessoa SERIAL PRIMARY KEY,
-    idPessoa VARCHAR(20) NOT NULL,
-    tipoPessoa VARCHAR(1),
-    nomePessoa VARCHAR(50),
-    numDocumento VARCHAR(14)
+CREATE TABLE dimpessoa (
+    skpessoa SERIAL PRIMARY KEY,
+    idpessoa VARCHAR(20) NOT NULL,
+    tipopessoa VARCHAR(1),
+    nomepessoa VARCHAR(50),
+    numdocumento VARCHAR(14)
 );
 
-CREATE TABLE FatoCDA (
-    skFatoCDA SERIAL PRIMARY KEY,
-    numCDA VARCHAR(30) NOT NULL,
+CREATE TABLE fatocda (
+    skfatocda SERIAL PRIMARY KEY,
+    numcda VARCHAR(30) NOT NULL,
 
-    skNaturezaDivida INT NOT NULL REFERENCES DimNaturezaDivida(skNaturezaDivida),
-    skSituacaoCDA INT NOT NULL REFERENCES DimSituacaoCDA(skSituacaoCDA),
-    skPessoa INT NOT NULL REFERENCES DimPessoa(skPessoa),
-    skTempoCadastramento INT NOT NULL REFERENCES DimTempo(skTempo),
-    skTempoSituacao INT NOT NULL REFERENCES DimTempo(skTempo),
+    sknaturezadivida INT NOT NULL REFERENCES dimnaturezadivida(sknaturezadivida),
+    sksituacaocda INT NOT NULL REFERENCES dimsituacaocda(sksituacaocda),
+    skpessoa INT NOT NULL REFERENCES dimpessoa(skpessoa),
+    sktempocadastramento INT NOT NULL REFERENCES dimtempo(sktempo),
+    sktemposituacao INT NOT NULL REFERENCES dimtempo(sktempo),
 
-    anoCadastramento INT,
-    idadeCDA INT,
-    valSaldo NUMERIC(15,2),
-    probRecuperacao FLOAT,
-    stsRecuperacao INT
+    anoinscricao INT,
+    anocadastramento INT,
+    idadecda INT,
+    valsaldo NUMERIC(15,2),
+    probrecuperacao FLOAT,
+    stsrecuperacao INT
 );
