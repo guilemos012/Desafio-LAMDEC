@@ -9,52 +9,73 @@ Este projeto implementa um sistema completo de análise de CDAs, utilizando arqu
 - Git
 
 ### 1. Clonar o Repositório
+```
 git clone https://github.com/guilemos012/Desafio-LAMDEC
 cd Desafio-LAMDEC
+```
 
 ### 2. Configurar Bancos de Dados
 
 #### 2.1 Criar Bancos no PostgreSQL
 ##### Acesse o PostgreSQL como superusuário:
+```
 psql -U postgres
-
+```
 ##### Crie os bancos
+```
 CREATE DATABASE "LAMDEC_TRANSACIONAL";
 CREATE DATABASE "LAMDEC_DW";
+```
 
 ##### Saia do psql
+```
 \q
-
+```
 #### 2.2 Criar Schema do Banco Transacional
+```
 psql -U postgres -d LAMDEC_TRANSACIONAL -f banco_transacional/modelo_fisico.sql
-
+```
 #### 2.3 Criar Schema do Data Warehouse
+```
 psql -U postgres -d LAMDEC_DW -f data_warehouse/star_schema.sql
+```
 
 ### 3. Execução Manual
 
 #### 3.1 Criar e Ativar Ambiente Virtual
+```
 python -m venv .venv
+```
 **Windows**
+```
 .venv\Scripts\activate
+```
 **Linux/Mac**
+```
 source .venv/bin/activate
+```
 
 #### 3.2 Configurar Banco Transacional
+```
 cd banco_transacional
 pip install -r requirements.txt
 python povoar.py
+```
 
 #### 3.3 Executar ETL
 Certifique-se de que o banco transacional e o DW estão configurados corretamente.
+```
 cd ../data_warehouse/ETL
 pip install -r requirements.txt
 python main.py
+```
 
 #### 3.4 Iniciar API
+```
 cd ../../api
 pip install -r requirements.txt
 uvicorn app:app --reload
+```
 
 ### 4. Acessar a Aplicação
 A documentação interativa da API estará disponível em:  
